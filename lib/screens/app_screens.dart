@@ -17,9 +17,12 @@ class _AppHomePageState extends State<AppHomePage> {
   int _selectedIndex = 0;
   var userDefines = [];
   var userSellID = [];
+  var marketID = [];
+  var marketInfor = [];
 
   _AppHomePageState(){
     _sellInformation();
+    _marketInformation();
 
     FirebaseDatabase.instance.ref("MarketPlace/").onChildChanged.listen((event) async{
       _sellInformation();
@@ -69,6 +72,26 @@ class _AppHomePageState extends State<AppHomePage> {
     });
   }
 
+  void _marketInformation(){
+    FirebaseDatabase.instance
+        .ref()
+        .child("MarketPlace/")
+        .once()
+        .then((snapshot) {
+      userDefines.clear();
+      userSellID.clear();
+      for (var key in snapshot.snapshot.children) {
+        marketInfor.add(key.value);
+        marketID.add(key.key);
+      }
+      setState(() {
+
+      });
+    }).catchError((onError) {
+      print("Error");
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final List items = [];
@@ -111,7 +134,7 @@ class _AppHomePageState extends State<AppHomePage> {
     }
 
     List<Widget> _widgetLists = [
-      ListView.builder(
+      /*ListView.builder(
           itemCount: items.length,
           itemBuilder: (context, index) {
             return ListTile(
@@ -150,7 +173,27 @@ class _AppHomePageState extends State<AppHomePage> {
                 ),
               ),
             );
-          }),
+          }),*/
+      Container(
+        alignment: Alignment.center,
+        color: Colors.blue,
+        child: ListView.builder(
+          itemCount: marketID.length,
+          itemBuilder: (BuildContext context, int index) {
+            return Card(
+
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Book Name: " + marketInfor[index]["BookName"]),
+                  Text("Description: " + marketInfor[index]["Description"]),
+                  Text("Price: " + marketInfor[index]["Price"]),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
       Container(
         child: Text(widget.userId),
         alignment: Alignment.center,
