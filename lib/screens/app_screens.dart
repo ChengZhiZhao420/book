@@ -21,7 +21,7 @@ class _AppHomePageState extends State<AppHomePage> {
   _AppHomePageState(){
     _sellInformation();
 
-    FirebaseDatabase.instance.ref("User/" + FirebaseAuth.instance.currentUser!.uid).onChildChanged.listen((event) {
+    FirebaseDatabase.instance.ref("MarketPlace/").onChildChanged.listen((event) async{
       _sellInformation();
     });
   }
@@ -52,7 +52,7 @@ class _AppHomePageState extends State<AppHomePage> {
   void _sellInformation(){
     FirebaseDatabase.instance
         .ref()
-        .child("User/" + FirebaseAuth.instance.currentUser!.uid)
+        .child("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/")
         .once()
         .then((snapshot) {
           userDefines.clear();
@@ -173,7 +173,7 @@ class _AppHomePageState extends State<AppHomePage> {
                     setState(() {
                       userDefines.removeAt(index);
                       userSellID.removeAt(index);
-                      FirebaseDatabase.instance.ref("User/" + FirebaseAuth.instance.currentUser!.uid + "/" + userSellID[index]);
+                      FirebaseDatabase.instance.ref("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/" + userSellID[index]);
 
                       ScaffoldMessenger.of(context)
                       .showSnackBar(SnackBar(content: Text('${userSellID[index]} dismissed')));

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:book/screens/pictureGallery.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
@@ -14,7 +15,7 @@ class addItem extends StatefulWidget {
 }
 
 class _addItemState extends State<addItem> {
-  late List<File> _image;
+  List<File> _image = [];
   @override
   Widget build(BuildContext context) {
     TextEditingController bookDescriptionController = TextEditingController();
@@ -62,13 +63,15 @@ class _addItemState extends State<addItem> {
           ),
           ElevatedButton(
             onPressed: () async {
-              _image = await Navigator.push(context, MaterialPageRoute(builder: (context) => const Gallery()));
+              _image = await Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const Gallery()));
 
-              if(_image.isEmpty){
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text("Empty Image List")));
-              }
-              else{
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text("Image Added")));
+              if (_image.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Empty Image List")));
+              } else {
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text("Image Added")));
               }
             },
             child: Text("Select Photo"),
@@ -83,14 +86,15 @@ class _addItemState extends State<addItem> {
 
               var timeStamp = DateTime.now().millisecondsSinceEpoch;
               String sellId = "" + widget.userId + "~" + timeStamp.toString();
+              DatabaseReference df = FirebaseDatabase.instance.ref();
 
-              FirebaseDatabase.instance
-                  .ref()
-                  .child("User/" + widget.userId + "/" + sellId)
+
+              df.child("User/" + widget.userId + "/SellItem/" + sellId)
                   .set({
                 "BookName": bookNameController.text,
                 "Description": bookDescriptionController.text,
-                "Price": bookPriceController.text
+                "Price": bookPriceController.text,
+                "Sold" : false
               }).then((value) {
                 dataBase = true;
                 print("Update Database Successful");
@@ -98,8 +102,21 @@ class _addItemState extends State<addItem> {
                 print("Update Database Failed");
               }); //async
 
-             int i = 0;
-              for(var img in _image){
+
+              df.child("MarketPlace/$sellId")
+                  .set({
+                "BookName": bookNameController.text,
+                "Description": bookDescriptionController.text,
+                "Price": bookPriceController.text,
+                "Sold" : false
+              }).then((value) {
+                print("Update MarketPlace Successful");
+              }).catchError((onError) {
+                print("Update MarketPlace Failed");
+              });
+
+              int i = 0;
+              for (var img in _image) {
                 var ref = firebase_storage.FirebaseStorage.instance
                     .ref()
                     .child('images/$sellId/$i');
@@ -114,23 +131,26 @@ class _addItemState extends State<addItem> {
                 i++;
               }
 
-              if(dataBase && storage){
+              if (dataBase && storage) {
                 print("Both Successful");
                 Navigator.pop(context);
-              }
-              else{
-                showDialog(builder: (context) {
-                  return AlertDialog(
-                    actions: [
-                      TextButton(
-                      onPressed: (){
-                        setState(() {
-                          Navigator.pop(context);
-                       });
-                     }, child: Text("Cancel"),)
-                    ],
-                  );
-                }, context: context);
+              } else {
+                showDialog(
+                    builder: (context) {
+                      return AlertDialog(
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                Navigator.pop(context);
+                              });
+                            },
+                            child: Text("Cancel"),
+                          )
+                        ],
+                      );
+                    },
+                    context: context);
               }
             },
             child: Text("Submit"),
