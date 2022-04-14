@@ -15,19 +15,8 @@ class AppHomePage extends StatefulWidget {
 
 class _AppHomePageState extends State<AppHomePage> {
   int _selectedIndex = 0;
-  var userDefines = [];
-  var userSellID = [];
   var marketID = [];
   var marketInfor = [];
-
-  _AppHomePageState(){
-    _sellInformation();
-    _marketInformation();
-
-    FirebaseDatabase.instance.ref("MarketPlace/").onChildChanged.listen((event) async{
-      _sellInformation();
-    });
-  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -52,25 +41,6 @@ class _AppHomePageState extends State<AppHomePage> {
     }
   }
 
-  void _sellInformation(){
-    FirebaseDatabase.instance
-        .ref()
-        .child("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/")
-        .once()
-        .then((snapshot) {
-          userDefines.clear();
-          userSellID.clear();
-      for (var key in snapshot.snapshot.children) {
-        userDefines.add(key.value);
-        userSellID.add(key.key);
-      }
-      setState(() {
-        
-      });
-    }).catchError((onError) {
-      print("Error");
-    });
-  }
 
   void _marketInformation(){
     FirebaseDatabase.instance
@@ -78,8 +48,8 @@ class _AppHomePageState extends State<AppHomePage> {
         .child("MarketPlace/")
         .once()
         .then((snapshot) {
-      userDefines.clear();
-      userSellID.clear();
+      marketInfor.clear();
+      marketID.clear();
       for (var key in snapshot.snapshot.children) {
         marketInfor.add(key.value);
         marketID.add(key.key);
@@ -134,65 +104,45 @@ class _AppHomePageState extends State<AppHomePage> {
     }
 
     List<Widget> _widgetLists = [
-      /*ListView.builder(
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              onTap: () {},
-              title: Container(
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: Colors.grey)),
-                alignment: Alignment.center,
-                margin: EdgeInsets.only(left: 10, right: 10, bottom: 5, top: 5),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 35,
-                      child: Container(
-                        decoration: const BoxDecoration(
-                            image: DecorationImage(
-                                fit: BoxFit.fill,
-                                image: NetworkImage(
-                                    "https://dbukjj6eu5tsf.cloudfront.net/sidearm.sites/broncoathletics.com/images/2014/9/24/LogoRelease1a.jpg"))),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 65,
-                      child: Container(
-                        child: Row(
-                          children: const [
-                            Flexible(
-                                child: Text(
-                                    "ddddddddddddddddddddjjjjjjjjjjjj22222222222222222222222222"))
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),*/
       Container(
         alignment: Alignment.center,
         color: Colors.blue,
-        child: ListView.builder(
-          itemCount: marketID.length,
-          itemBuilder: (BuildContext context, int index) {
-            return Card(
-
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Book Name: " + marketInfor[index]["BookName"]),
-                  Text("Description: " + marketInfor[index]["Description"]),
-                  Text("Price: " + marketInfor[index]["Price"]),
-                ],
-              ),
-            );
-          },
-        ),
+        child: StreamBuilder(
+          stream: FirebaseDatabase.instance
+              .ref()
+              .child("MarketPlace").onValue,
+          builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+            if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null){
+              List marketPlaceSellInformation = [];
+              List marketPlaceSellID = [];
+              Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
+              map.forEach((key, value) {
+                print(key);
+                marketPlaceSellID.add(key);
+                marketPlaceSellInformation.add(value);
+              });
+              for(int i = 0; i < marketPlaceSellInformation.length; i++){
+                print(marketPlaceSellInformation[i]["BookName"]);
+              }
+              return ListView.builder(
+                  itemCount: marketPlaceSellInformation.length,
+                  itemBuilder: (context, index){
+                    return Card(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Book Name: " + marketPlaceSellInformation[index]["BookName"]),
+                          Text("Description: " + marketPlaceSellInformation[index]["Description"]),
+                          Text("Price: " + marketPlaceSellInformation[index]["Price"]),
+                        ],
+                      ),
+                    );
+                  });
+            }
+            else{
+              return Card(child: Text("no value"),);
+            }
+          },),
       ),
       Container(
         child: Text(widget.userId),
@@ -200,42 +150,54 @@ class _AppHomePageState extends State<AppHomePage> {
         color: Colors.green,
       ),
       Container(
-        child: RefreshIndicator(
-          onRefresh: () {
-            return Future.delayed(Duration(seconds: 2), () {
-              _sellInformation();
-            });
-          },
-          child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: userSellID.length,
-              itemBuilder: (context, index) {
-                return Dismissible(
-                  key: Key(userSellID[index]),
-                  onDismissed: (direction){
-                    setState(() {
-                      userDefines.removeAt(index);
-                      userSellID.removeAt(index);
-                      FirebaseDatabase.instance.ref("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/" + userSellID[index]);
+        child: StreamBuilder(
+          stream: FirebaseDatabase.instance
+              .ref()
+              .child("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/").onValue,
+          builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+            if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null){
+              List sellInformation = [];
+              List sellID = [];
+              Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
+              map.forEach((key, value) {
+                print(key);
+                sellID.add(key);
+                sellInformation.add(value);
+              });
+              for(int i = 0; i < sellInformation.length; i++){
+                print(sellInformation[i]["BookName"]);
+              }
+              return ListView.builder(
+                  itemCount: sellInformation.length,
+                  itemBuilder: (context, index){
+                    return Dismissible(
+                      key: UniqueKey() ,
+                      onDismissed: (direction){
+                        setState(() {
+                          DatabaseReference df = FirebaseDatabase.instance.ref();
 
-                      ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('${userSellID[index]} dismissed')));
-                      }
+                          df.child("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/" + sellID[index]).remove();
+                          df.child("MartKetPlace/" + sellID[index]).remove();
+
+                        });
+                      },
+                      child: Card(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Book Name: " + sellInformation[index]["BookName"]),
+                            Text("Description: " + sellInformation[index]["Description"]),
+                            Text("Price: " + sellInformation[index]["Price"]),
+                          ],
+                        ),
+                      ),
                     );
-                  },
-                  child: Card(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Book Name: " + userDefines[index]["BookName"]),
-                        Text("Description: " + userDefines[index]["Description"]),
-                        Text("Price: " + userDefines[index]["Price"]),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-        ),
+              });
+            }
+            else{
+              return Card(child: Text("no value"),);
+            }
+          },),
         alignment: Alignment.center,
         color: Colors.blue,
       ),
