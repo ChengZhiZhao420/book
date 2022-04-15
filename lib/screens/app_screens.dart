@@ -33,7 +33,7 @@ class _AppHomePageState extends State<AppHomePage> {
               MaterialPageRoute(
                   builder: (context) => addItem(userId: widget.userId)));
         },
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
         tooltip: "Add Item",
       );
     } else {
@@ -177,7 +177,12 @@ class _AppHomePageState extends State<AppHomePage> {
                           DatabaseReference df = FirebaseDatabase.instance.ref();
 
                           df.child("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/" + sellID[index]).remove();
-                          df.child("MartKetPlace/" + sellID[index]).remove();
+                          df.child("MarketPlace/" + sellID[index]).remove().then((value){
+                            print("Remove market place successful");
+                          }).catchError((onError){
+                            print("Remove market place failed${onError.toString()}");
+
+                          });
 
                         });
                       },
