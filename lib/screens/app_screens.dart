@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
+import 'order_Gallery.dart';
+
 class AppHomePage extends StatefulWidget {
   final String userId;
 
@@ -15,8 +17,6 @@ class AppHomePage extends StatefulWidget {
 
 class _AppHomePageState extends State<AppHomePage> {
   int _selectedIndex = 0;
-  var marketID = [];
-  var marketInfor = [];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -39,27 +39,6 @@ class _AppHomePageState extends State<AppHomePage> {
     } else {
       return null;
     }
-  }
-
-
-  void _marketInformation(){
-    FirebaseDatabase.instance
-        .ref()
-        .child("MarketPlace/")
-        .once()
-        .then((snapshot) {
-      marketInfor.clear();
-      marketID.clear();
-      for (var key in snapshot.snapshot.children) {
-        marketInfor.add(key.value);
-        marketID.add(key.key);
-      }
-      setState(() {
-
-      });
-    }).catchError((onError) {
-      print("Error");
-    });
   }
 
   @override
@@ -127,14 +106,19 @@ class _AppHomePageState extends State<AppHomePage> {
               return ListView.builder(
                   itemCount: marketPlaceSellInformation.length,
                   itemBuilder: (context, index){
-                    return Card(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Book Name: " + marketPlaceSellInformation[index]["BookName"]),
-                          Text("Description: " + marketPlaceSellInformation[index]["Description"]),
-                          Text("Price: " + marketPlaceSellInformation[index]["Price"]),
-                        ],
+                    return GestureDetector(
+                      onTap: (){
+                        Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => OrderGallery(sellID: marketPlaceSellID[index])));
+                      },
+                      child: Card(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Book Name: " + marketPlaceSellInformation[index]["BookName"]),
+                            Text("Description: " + marketPlaceSellInformation[index]["Description"]),
+                            Text("Price: " + marketPlaceSellInformation[index]["Price"]),
+                          ],
+                        ),
                       ),
                     );
                   });
