@@ -81,58 +81,53 @@ class _addItemState extends State<addItem> {
           ),
           ElevatedButton(
             onPressed: () async {
-              bool dataBase = false;
-              bool storage = false;
+              if (bookDescriptionController.text != "" && bookNameController.text != "" && bookPriceController.text != "" && _image.isNotEmpty) {
+                var timeStamp = DateTime.now().millisecondsSinceEpoch;
+                String sellId = "" + widget.userId + "~" + timeStamp.toString();
+                DatabaseReference df = FirebaseDatabase.instance.ref();
 
-              var timeStamp = DateTime.now().millisecondsSinceEpoch;
-              String sellId = "" + widget.userId + "~" + timeStamp.toString();
-              DatabaseReference df = FirebaseDatabase.instance.ref();
-
-              df.child("User/" + widget.userId + "/SellItem/" + sellId)
-                  .set({
-                "BookName": bookNameController.text,
-                "Description": bookDescriptionController.text,
-                "Price": bookPriceController.text,
-                "Sold" : false
-              }).then((value) {
-                dataBase = true;
-                print("Update Database Successful");
-              }).catchError((error) {
-                print("Update Database Failed");
-              }); //async
-
-
-              df.child("MarketPlace/$sellId")
-                  .set({
-                "BookName": bookNameController.text,
-                "Description": bookDescriptionController.text,
-                "Price": bookPriceController.text,
-                "Sold" : false
-              }).then((value) {
-                print("Update MarketPlace Successful");
-              }).catchError((onError) {
-                print("Update MarketPlace Failed");
-              });
-
-              int i = 0;
-              for (var img in _image) {
-                var ref = firebase_storage.FirebaseStorage.instance
-                    .ref()
-                    .child('images/$sellId/$i');
-
-                ref.putFile(img).then((value) {
-                  storage = true;
-                  print("Update Storage Successful");
+                df.child("User/" + widget.userId + "/SellItem/" + sellId)
+                    .set({
+                  "BookName": bookNameController.text,
+                  "Description": bookDescriptionController.text,
+                  "Price": bookPriceController.text,
+                  "Sold" : false
+                }).then((value) {
+                  print("Update Database Successful");
                 }).catchError((error) {
-                  print("Update Storage Failed");
+                  print("Update Database Failed");
+                }); //async
+
+
+                df.child("MarketPlace/$sellId")
+                    .set({
+                  "BookName": bookNameController.text,
+                  "Description": bookDescriptionController.text,
+                  "Price": bookPriceController.text,
+                  "Sold" : false
+                }).then((value) {
+                  print("Update MarketPlace Successful");
+                }).catchError((onError) {
+                  print("Update MarketPlace Failed");
                 });
 
-                i++;
-              }
+                int i = 0;
+                for (var img in _image) {
+                  var ref = firebase_storage.FirebaseStorage.instance
+                      .ref()
+                      .child('images/$sellId/$i');
 
-              if (dataBase && storage) {
+                  ref.putFile(img).then((value) {
+                    print("Update Storage Successful");
+                  }).catchError((error) {
+                    print("Update Storage Failed");
+                  });
+
+                  i++;
+                }
                 print("Both Successful");
                 Navigator.pop(context);
+
               } else {
                 showDialog(
                     builder: (context) {
@@ -141,9 +136,7 @@ class _addItemState extends State<addItem> {
                         actions: [
                           TextButton(
                             onPressed: () {
-                              setState(() {
-                                Navigator.pop(context);
-                              });
+                              Navigator.pop(context);
                             },
                             child: const Text("Cancel"),
                           )

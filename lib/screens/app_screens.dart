@@ -91,18 +91,16 @@ class _AppHomePageState extends State<AppHomePage> {
               .ref()
               .child("MarketPlace").onValue,
           builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-            if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null){
+            print("page 1 $snapshot");
+            if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null && snapshot.connectionState == ConnectionState.active){
               List marketPlaceSellInformation = [];
               List marketPlaceSellID = [];
               Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
               map.forEach((key, value) {
-                print(key);
                 marketPlaceSellID.add(key);
                 marketPlaceSellInformation.add(value);
               });
-              for(int i = 0; i < marketPlaceSellInformation.length; i++){
-                print(marketPlaceSellInformation[i]["BookName"]);
-              }
+
               return ListView.builder(
                   itemCount: marketPlaceSellInformation.length,
                   itemBuilder: (context, index){
@@ -129,7 +127,47 @@ class _AppHomePageState extends State<AppHomePage> {
           },),
       ),
       Container(
-        child: Text(widget.userId),
+        child: StreamBuilder(
+          stream: FirebaseDatabase.instance
+              .ref()
+              .child("User/" + FirebaseAuth.instance.currentUser!.uid + "/OnCart/").onValue,
+          builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+            print("page2 $snapshot");
+            if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null && snapshot.connectionState == ConnectionState.active){
+              List prices = [];
+              List sellID = [];
+
+              Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
+              map.forEach((key, value) {
+                sellID.add(key);
+                prices.add(value);
+              });
+
+              return ListView.builder(
+                  itemCount: prices.length,
+                  itemBuilder: (context, index){
+                    return Dismissible(
+                      key: UniqueKey() ,
+                      onDismissed: (direction){
+                        setState(() {
+                          DatabaseReference df = FirebaseDatabase.instance.ref();
+                          df.child("User/" + FirebaseAuth.instance.currentUser!.uid + "/OnCart/" + sellID[index]).remove();
+                        });
+                      },
+                      child: Card(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                          ],
+                        ),
+                      ),
+                    );
+                  });
+            }
+            else{
+              return Card(child: Text("no value"),);
+            }
+          },),
         alignment: Alignment.center,
         color: Colors.green,
       ),
@@ -139,18 +177,16 @@ class _AppHomePageState extends State<AppHomePage> {
               .ref()
               .child("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/").onValue,
           builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-            if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null){
+            print("page 3 $snapshot");
+            if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null && snapshot.connectionState == ConnectionState.active){
               List sellInformation = [];
               List sellID = [];
               Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
               map.forEach((key, value) {
-                print(key);
                 sellID.add(key);
                 sellInformation.add(value);
               });
-              for(int i = 0; i < sellInformation.length; i++){
-                print(sellInformation[i]["BookName"]);
-              }
+
               return ListView.builder(
                   itemCount: sellInformation.length,
                   itemBuilder: (context, index){
