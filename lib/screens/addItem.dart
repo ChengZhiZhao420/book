@@ -88,7 +88,6 @@ class _addItemState extends State<addItem> {
               String sellId = "" + widget.userId + "~" + timeStamp.toString();
               DatabaseReference df = FirebaseDatabase.instance.ref();
 
-
               df.child("User/" + widget.userId + "/SellItem/" + sellId)
                   .set({
                 "BookName": bookNameController.text,
@@ -138,6 +137,7 @@ class _addItemState extends State<addItem> {
                 showDialog(
                     builder: (context) {
                       return AlertDialog(
+                        title: const Text("Submission Failed"),
                         actions: [
                           TextButton(
                             onPressed: () {
@@ -145,7 +145,7 @@ class _addItemState extends State<addItem> {
                                 Navigator.pop(context);
                               });
                             },
-                            child: Text("Cancel"),
+                            child: const Text("Cancel"),
                           )
                         ],
                       );
