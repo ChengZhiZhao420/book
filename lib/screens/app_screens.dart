@@ -1,3 +1,4 @@
+
 import 'package:book/my_flutter_app_icons.dart';
 import 'package:book/screens/addItem.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,7 +18,7 @@ class AppHomePage extends StatefulWidget {
 
 class _AppHomePageState extends State<AppHomePage> {
   int _selectedIndex = 0;
-
+  int _totalPrice = 0;
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -67,11 +68,16 @@ class _AppHomePageState extends State<AppHomePage> {
             ),
           ),
         );
-      } else {
+      }
+      else if(index == 1){
+        return AppBar(
+          title: const Icon(MyFlutterApp.local_grocery_store),
+
+        );
+      }
+      else {
         Icon icon;
-        if (index == 1) {
-          icon = const Icon(MyFlutterApp.local_grocery_store);
-        } else if (index == 2) {
+        if (index == 2) {
           icon = const Icon(MyFlutterApp.import_export);
         } else {
           icon = const Icon(Icons.account_box_outlined);
@@ -97,11 +103,14 @@ class _AppHomePageState extends State<AppHomePage> {
               List marketPlaceSellID = [];
               Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
               map.forEach((key, value) {
-                marketPlaceSellID.add(key);
-                marketPlaceSellInformation.add(value);
+                if(!key.toString().startsWith(FirebaseAuth.instance.currentUser!.uid)){
+                  marketPlaceSellID.add(key);
+                  marketPlaceSellInformation.add(value);
+                }
               });
 
-              return ListView.builder(
+              return GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
                   itemCount: marketPlaceSellInformation.length,
                   itemBuilder: (context, index){
                     return GestureDetector(
@@ -119,7 +128,7 @@ class _AppHomePageState extends State<AppHomePage> {
                         ),
                       ),
                     );
-                  });
+                  }, );
             }
             else{
               return Card(child: Text("no value"),);
@@ -127,47 +136,53 @@ class _AppHomePageState extends State<AppHomePage> {
           },),
       ),
       Container(
-        child: StreamBuilder(
-          stream: FirebaseDatabase.instance
-              .ref()
-              .child("User/" + FirebaseAuth.instance.currentUser!.uid + "/OnCart/").onValue,
-          builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-            print("page2 $snapshot");
-            if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null && snapshot.connectionState == ConnectionState.active){
-              List prices = [];
-              List sellID = [];
+        child: Stack(
+          children: [
+            StreamBuilder(
+              stream: FirebaseDatabase.instance
+                  .ref()
+                  .child("User/" + FirebaseAuth.instance.currentUser!.uid + "/OnCart/").onValue,
+              builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+                print("page2 $snapshot");
+                if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null && snapshot.connectionState == ConnectionState.active){
+                  List prices = [];
+                  List sellID = [];
 
-              Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
-              map.forEach((key, value) {
-                sellID.add(key);
-                prices.add(value);
-              });
-
-              return ListView.builder(
-                  itemCount: prices.length,
-                  itemBuilder: (context, index){
-                    return Dismissible(
-                      key: UniqueKey() ,
-                      onDismissed: (direction){
-                        setState(() {
-                          DatabaseReference df = FirebaseDatabase.instance.ref();
-                          df.child("User/" + FirebaseAuth.instance.currentUser!.uid + "/OnCart/" + sellID[index]).remove();
-                        });
-                      },
-                      child: Card(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                          ],
-                        ),
-                      ),
-                    );
+                  Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
+                  map.forEach((key, value) {
+                    sellID.add(key);
+                    prices.add(value);
                   });
-            }
-            else{
-              return Card(child: Text("no value"),);
-            }
-          },),
+
+                  return ListView.builder(
+                      itemCount: prices.length,
+                      itemBuilder: (context, index){
+                        return Dismissible(
+                          key: UniqueKey() ,
+                          onDismissed: (direction){
+                            setState(() {
+                              DatabaseReference df = FirebaseDatabase.instance.ref();
+                              df.child("User/" + FirebaseAuth.instance.currentUser!.uid + "/OnCart/" + sellID[index]).remove();
+                            });
+                          },
+                          child: Card(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Sell ID: ${sellID[index]}"),
+                                Text("Price: ${prices[index]["Price"]}")
+                              ],
+                            ),
+                          ),
+                        );
+                      });
+                }
+                else{
+                  return Card(child: Text("no value"),);
+                }
+              },),
+          ],
+        ),
         alignment: Alignment.center,
         color: Colors.green,
       ),
