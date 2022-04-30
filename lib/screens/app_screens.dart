@@ -3,6 +3,7 @@ import 'package:book/my_flutter_app_icons.dart';
 import 'package:book/screens/addItem.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
 import 'order_Gallery.dart';
@@ -192,7 +193,6 @@ class _AppHomePageState extends State<AppHomePage> {
               .ref()
               .child("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/").onValue,
           builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-            print("page 3 $snapshot");
             if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null && snapshot.connectionState == ConnectionState.active){
               List sellInformation = [];
               List sellID = [];
@@ -210,15 +210,19 @@ class _AppHomePageState extends State<AppHomePage> {
                       onDismissed: (direction){
                         setState(() {
                           DatabaseReference df = FirebaseDatabase.instance.ref();
-
+                          Reference ds = FirebaseStorage.instance.ref("images/");
+                          
                           df.child("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/" + sellID[index]).remove();
                           df.child("MarketPlace/" + sellID[index]).remove().then((value){
                             print("Remove market place successful");
                           }).catchError((onError){
                             print("Remove market place failed${onError.toString()}");
-
                           });
-
+                          ds.child("${sellID[index]}/").listAll().then((value){
+                            value.items.forEach((element) {
+                              element.delete();
+                            });
+                          });
                         });
                       },
                       child: Card(

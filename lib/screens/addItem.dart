@@ -83,49 +83,57 @@ class _addItemState extends State<addItem> {
             onPressed: () async {
               if (bookDescriptionController.text != "" && bookNameController.text != "" && bookPriceController.text != "" && _image.isNotEmpty) {
                 var timeStamp = DateTime.now().millisecondsSinceEpoch;
+                bool proceed = false;
+                List photoUrl = [];
                 String sellId = "" + widget.userId + "~" + timeStamp.toString();
                 DatabaseReference df = FirebaseDatabase.instance.ref();
+                int i;
 
-                df.child("User/" + widget.userId + "/SellItem/" + sellId)
-                    .set({
-                  "BookName": bookNameController.text,
-                  "Description": bookDescriptionController.text,
-                  "Price": bookPriceController.text,
-                  "Sold" : false
-                }).then((value) {
-                  print("Update Database Successful");
-                }).catchError((error) {
-                  print("Update Database Failed");
-                }); //async
-
-
-                df.child("MarketPlace/$sellId")
-                    .set({
-                  "BookName": bookNameController.text,
-                  "Description": bookDescriptionController.text,
-                  "Price": bookPriceController.text,
-                  "Sold" : false
-                }).then((value) {
-                  print("Update MarketPlace Successful");
-                }).catchError((onError) {
-                  print("Update MarketPlace Failed");
-                });
-
-                int i = 0;
-                for (var img in _image) {
+                for (i = 0; i < _image.length; i++) {
                   var ref = firebase_storage.FirebaseStorage.instance
                       .ref()
                       .child('images/$sellId/$i');
 
-                  ref.putFile(img).then((value) {
+                  ref.putFile(_image[i]).then((value) {
+                    value.ref.getDownloadURL().then((value){
+                      df.child("User/" + widget.userId + "/SellItem/" + sellId + "/Property").update({
+                        "$i" : value.toString()
+                      });
+                      df.child("MarketPlace/" + sellId + "/Property").update({
+                        "$i" : value.toString()
+                      });
+                    });
                     print("Update Storage Successful");
                   }).catchError((error) {
                     print("Update Storage Failed");
                   });
 
-                  i++;
+                  df.child("MarketPlace/$sellId")
+                      .set({
+                    "BookName": bookNameController.text,
+                    "Description": bookDescriptionController.text,
+                    "Price": bookPriceController.text,
+                    "Sold" : false,
+                  }).then((value) {
+                    print("Update MarketPlace Successful");
+                  }).catchError((onError) {
+                    print("Update MarketPlace Failed");
+                  });
+
+                  df.child("User/" + widget.userId + "/SellItem/" + sellId)
+                      .set({
+                    "BookName": bookNameController.text,
+                    "Description": bookDescriptionController.text,
+                    "Price": bookPriceController.text,
+                    "Sold" : false
+                  }).then((value) {
+                    print("Update Database Successful");
+                  }).catchError((error) {
+                    print("Update Database Failed");
+                  }); //async
+
+                  print("Both Successful");
                 }
-                print("Both Successful");
                 Navigator.pop(context);
 
               } else {

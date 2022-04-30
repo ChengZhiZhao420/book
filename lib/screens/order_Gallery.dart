@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 
@@ -26,9 +29,16 @@ class _OrderGalleryState extends State<OrderGallery> {
         builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
           if (snapshot.hasData &&
               !snapshot.hasError &&
-              snapshot.data.snapshot.value != null) {
-            var sellItemInformations = snapshot.data.snapshot.value;
-            print(snapshot.data.snapshot);
+              snapshot.data.snapshot.value != null &&
+              snapshot.connectionState == ConnectionState.active) {
+            var sellItemInformation = snapshot.data.snapshot.value;
+            List map = sellItemInformation["Property"];
+            List<Widget> photoList = [];
+            for (var element in map) {
+              if(element != null){
+                photoList.add(Image.network(element));
+              }
+            }
             return ListView(
               children: [
                 Container(
@@ -36,7 +46,7 @@ class _OrderGalleryState extends State<OrderGallery> {
                     height: 50,
                     child: Center(
                         child: Text(
-                      "${sellItemInformations["BookName"]}",
+                      "${sellItemInformation["BookName"]}",
                       style:
                           TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                     ))),
@@ -44,17 +54,16 @@ class _OrderGalleryState extends State<OrderGallery> {
                     width: double.infinity,
                     height: 300,
                     initialPage: 0,
-                    children: [
-                      Image.network(
-                          "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Gutenberg_Bible%2C_Lenox_Copy%2C_New_York_Public_Library%2C_2009._Pic_01.jpg/447px-Gutenberg_Bible%2C_Lenox_Copy%2C_New_York_Public_Library%2C_2009._Pic_01.jpg"),
-                      Image.network(
-                          "https://cdn.elearningindustry.com/wp-content/uploads/2016/05/top-10-books-every-college-student-read-1024x640.jpeg")
-                    ]),
-                Container(color: Colors.grey,height: 5,width: double.infinity,),
+                    children: photoList),
+                Container(
+                  color: Colors.grey,
+                  height: 5,
+                  width: double.infinity,
+                ),
                 Center(
                   child: Column(
                     children: [
-                      Text("Top Deal: ${sellItemInformations["Price"]}"),
+                      Text("Top Deal: ${sellItemInformation["Price"]}"),
                       const Text("You Save: \$23"),
                     ],
                   ),
@@ -63,39 +72,51 @@ class _OrderGalleryState extends State<OrderGallery> {
                   padding: EdgeInsets.all(10),
                   child: ElevatedButton(
                     onPressed: () {
-                      var ref = FirebaseDatabase.instance.ref("User/${FirebaseAuth.instance.currentUser!.uid}/OnCart/${widget.sellID}");
+                      var ref = FirebaseDatabase.instance.ref(
+                          "User/${FirebaseAuth.instance.currentUser!.uid}/OnCart/${widget.sellID}");
 
-                      ref.once().then((value){
-                        if(value.snapshot.exists){
-                          showDialog(builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text("Item was on cart"),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      Navigator.pop(context);
-                                    });
-                                  },
-                                  child: const Text("Cancel"),
-                                )
-                              ],
-                            );
-                          }, context: context
-
-                          );
-                        }else{
+                      ref.once().then((value) {
+                        if (value.snapshot.exists) {
+                          showDialog(
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text("Item was on cart"),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          Navigator.pop(context);
+                                        });
+                                      },
+                                      child: const Text("Cancel"),
+                                    )
+                                  ],
+                                );
+                              },
+                              context: context);
+                        } else {
                           ref.set({
-                            "Price" : sellItemInformations["Price"],
+                            "Price": sellItemInformation["Price"],
                           });
                         }
                       });
-                  },
-                  child: const Text("Add Cart"),),
+                    },
+                    child: const Text("Add Cart"),
+                  ),
                 ),
-                Container(color: Colors.grey,height: 5,width: double.infinity,),
-                const Text("About this Item", style: TextStyle(fontWeight: FontWeight.bold),),
-                Text("${sellItemInformations["Description"]}", style: TextStyle(fontSize: 20),)
+                Container(
+                  color: Colors.grey,
+                  height: 5,
+                  width: double.infinity,
+                ),
+                const Text(
+                  "About this Item",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "${sellItemInformation["Description"]}",
+                  style: TextStyle(fontSize: 20),
+                )
               ],
             );
           } else {
