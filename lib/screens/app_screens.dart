@@ -6,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
+import 'CheckOut.dart';
 import 'order_Gallery.dart';
 
 class AppHomePage extends StatefulWidget {
@@ -19,14 +20,16 @@ class AppHomePage extends StatefulWidget {
 
 class _AppHomePageState extends State<AppHomePage> {
   int _selectedIndex = 0;
-  int _totalPrice = 0;
+  List onCartPrices = [];
+  List onCartSellID = [];
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  FloatingActionButton? _getButton(int index) {
+  Widget? _getButton(int index) {
     if (index == 2) {
       return FloatingActionButton(
         onPressed: () {
@@ -37,6 +40,31 @@ class _AppHomePageState extends State<AppHomePage> {
         },
         child: const Icon(Icons.add),
         tooltip: "Add Item",
+      );
+    } else if (index == 1) {
+      return SizedBox(
+        width: 150,
+        child: FloatingActionButton(
+          shape: const BeveledRectangleBorder(
+              borderRadius: BorderRadius.zero
+          ),
+          onPressed: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => CheckOutMain(
+                        cartPrices: onCartPrices, cartID: onCartSellID)));
+          },
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Text("Check Out",style: TextStyle(fontWeight: FontWeight.bold)),
+                Icon(Icons.arrow_forward_ios_sharp),
+              ],
+            ),
+          )
+        ),
       );
     } else {
       return null;
@@ -69,14 +97,18 @@ class _AppHomePageState extends State<AppHomePage> {
             ),
           ),
         );
-      }
-      else if(index == 1){
+      } else if (index == 1) {
         return AppBar(
-          title: const Icon(MyFlutterApp.local_grocery_store),
-
+          title: Column(
+            children: [
+              Text(
+                "Your Cart",
+                style: TextStyle(color: Colors.black),
+              )
+            ],
+          ),
         );
-      }
-      else {
+      } else {
         Icon icon;
         if (index == 2) {
           icon = const Icon(MyFlutterApp.import_export);
@@ -92,49 +124,75 @@ class _AppHomePageState extends State<AppHomePage> {
     List<Widget> _widgetLists = [
       Container(
         alignment: Alignment.center,
-        color: Colors.blue,
+        color: Colors.white,
         child: StreamBuilder(
-          stream: FirebaseDatabase.instance
-              .ref()
-              .child("MarketPlace").onValue,
+          stream: FirebaseDatabase.instance.ref().child("MarketPlace").onValue,
           builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
             print("page 1 $snapshot");
-            if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null && snapshot.connectionState == ConnectionState.active){
+            if (snapshot.hasData &&
+                !snapshot.hasError &&
+                snapshot.data.snapshot.value != null &&
+                snapshot.connectionState == ConnectionState.active) {
               List marketPlaceSellInformation = [];
               List marketPlaceSellID = [];
+              List photoUrl = [];
               Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
               map.forEach((key, value) {
-                if(!key.toString().startsWith(FirebaseAuth.instance.currentUser!.uid)){
+                if (!key
+                    .toString()
+                    .startsWith(FirebaseAuth.instance.currentUser!.uid)) {
                   marketPlaceSellID.add(key);
                   marketPlaceSellInformation.add(value);
                 }
               });
 
+              marketPlaceSellInformation.forEach((element) {
+                List temp = [];
+                temp = element["Property"];
+                photoUrl.add(temp[1]);
+              });
+
               return GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-                  itemCount: marketPlaceSellInformation.length,
-                  itemBuilder: (context, index){
-                    return GestureDetector(
-                      onTap: (){
-                        Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => OrderGallery(sellID: marketPlaceSellID[index])));
-                      },
-                      child: Card(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Book Name: " + marketPlaceSellInformation[index]["BookName"]),
-                            Text("Description: " + marketPlaceSellInformation[index]["Description"]),
-                            Text("Price: " + marketPlaceSellInformation[index]["Price"]),
-                          ],
-                        ),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, mainAxisExtent: 300),
+                itemCount: marketPlaceSellInformation.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (BuildContext context) => OrderGallery(
+                                  sellID: marketPlaceSellID[index])));
+                    },
+                    child: Card(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                              decoration: BoxDecoration(
+                                  image: DecorationImage(
+                            fit: BoxFit.cover,
+                            image: NetworkImage(photoUrl[index]),
+                          ))),
+                          Text(
+                            "Book Name: " +
+                                marketPlaceSellInformation[index]["BookName"],
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        ],
                       ),
-                    );
-                  }, );
+                    ),
+                  );
+                },
+              );
+            } else {
+              return Card(
+                child: Text("no value"),
+              );
             }
-            else{
-              return Card(child: Text("no value"),);
-            }
-          },),
+          },
+        ),
       ),
       Container(
         child: Stack(
@@ -142,58 +200,145 @@ class _AppHomePageState extends State<AppHomePage> {
             StreamBuilder(
               stream: FirebaseDatabase.instance
                   .ref()
-                  .child("User/" + FirebaseAuth.instance.currentUser!.uid + "/OnCart/").onValue,
+                  .child("User/" +
+                      FirebaseAuth.instance.currentUser!.uid +
+                      "/OnCart/")
+                  .onValue,
               builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
                 print("page2 $snapshot");
-                if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null && snapshot.connectionState == ConnectionState.active){
-                  List prices = [];
-                  List sellID = [];
-
+                if (snapshot.hasData &&
+                    !snapshot.hasError &&
+                    snapshot.data.snapshot.value != null &&
+                    snapshot.connectionState == ConnectionState.active) {
                   Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
+                  List photoList = [];
+                  onCartSellID.clear();
+                  onCartPrices.clear();
+
                   map.forEach((key, value) {
-                    sellID.add(key);
-                    prices.add(value);
+                    onCartSellID.add(key);
+                    onCartPrices.add(value);
                   });
 
+                 /* for(int i = 0; i < onCartSellID.length; i++){
+                    FirebaseDatabase.instance
+                        .ref("MarketPlace/${onCartSellID[i]}/Property").get().then((value){
+                          print(value.value);
+                          List? list = value.value as List?;
+                          photoList.add(list![0]);
+                    });
+                  }*/
+
                   return ListView.builder(
-                      itemCount: prices.length,
-                      itemBuilder: (context, index){
-                        return Dismissible(
-                          key: UniqueKey() ,
-                          onDismissed: (direction){
-                            setState(() {
-                              DatabaseReference df = FirebaseDatabase.instance.ref();
-                              df.child("User/" + FirebaseAuth.instance.currentUser!.uid + "/OnCart/" + sellID[index]).remove();
-                            });
-                          },
-                          child: Card(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text("Sell ID: ${sellID[index]}"),
-                                Text("Price: ${prices[index]["Price"]}")
-                              ],
+                      itemCount: onCartPrices.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          child: Dismissible(
+                            key: UniqueKey(),
+                            onDismissed: (direction) {
+                              setState(() {
+                                DatabaseReference df =
+                                    FirebaseDatabase.instance.ref();
+                                df
+                                    .child("User/" +
+                                        FirebaseAuth.instance.currentUser!.uid +
+                                        "/OnCart/" +
+                                        onCartSellID[index])
+                                    .remove();
+                              });
+                            },
+                            background: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 20),
+                              decoration: BoxDecoration(
+                                color: Color(0xFFFFE6E6),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Row(
+                                children: [
+                                  Spacer(),
+                                  // SvgPicture.asset("assets/icons/Trash.svg"),
+                                ],
+                              ),
                             ),
+                            child: Row(children: [
+                              SizedBox(
+                                width: 88,
+                                child: AspectRatio(
+                                  aspectRatio: 0.88,
+                                  child: Container(
+                                    padding: EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFFF5F6F9),
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                    child: Image.network(
+                                        onCartPrices[index]["Image"]),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 20),
+                              Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "${onCartPrices[index]["BookName"]}",
+                                      style: TextStyle(
+                                          color: Colors.black, fontSize: 16),
+                                      maxLines: 2,
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text.rich(
+                                        TextSpan(
+                                          text: "\$${onCartPrices[index]["Price"]}",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600, color: Colors.black),
+                                          children: [
+                                            TextSpan(
+                                                text: " x1",
+                                                style: Theme.of(context).textTheme.bodyText1),
+                                          ],
+                                        ),
+                                    )]),
+                             /* Card(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    //Text("Sell ID: ${onCartSellID[index]}"),
+                                    Text(
+                                        "Price: ${onCartPrices[index]["Price"]}")
+                                  ],
+                                ),
+                              ),*/
+                            ]),
                           ),
                         );
                       });
+                } else {
+                  return Card(
+                    child: Text("no value"),
+                  );
                 }
-                else{
-                  return Card(child: Text("no value"),);
-                }
-              },),
+              },
+            ),
           ],
         ),
         alignment: Alignment.center,
-        color: Colors.green,
+        color: Colors.white,
       ),
       Container(
         child: StreamBuilder(
           stream: FirebaseDatabase.instance
               .ref()
-              .child("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/").onValue,
+              .child("User/" +
+                  FirebaseAuth.instance.currentUser!.uid +
+                  "/SellItem/")
+              .onValue,
           builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-            if(snapshot.hasData && !snapshot.hasError && snapshot.data.snapshot.value != null && snapshot.connectionState == ConnectionState.active){
+            if (snapshot.hasData &&
+                !snapshot.hasError &&
+                snapshot.data.snapshot.value != null &&
+                snapshot.connectionState == ConnectionState.active) {
               List sellInformation = [];
               List sellID = [];
               Map<dynamic, dynamic> map = snapshot.data.snapshot.value;
@@ -204,21 +349,32 @@ class _AppHomePageState extends State<AppHomePage> {
 
               return ListView.builder(
                   itemCount: sellInformation.length,
-                  itemBuilder: (context, index){
+                  itemBuilder: (context, index) {
                     return Dismissible(
-                      key: UniqueKey() ,
-                      onDismissed: (direction){
+                      key: UniqueKey(),
+                      onDismissed: (direction) {
                         setState(() {
-                          DatabaseReference df = FirebaseDatabase.instance.ref();
-                          Reference ds = FirebaseStorage.instance.ref("images/");
-                          
-                          df.child("User/" + FirebaseAuth.instance.currentUser!.uid + "/SellItem/" + sellID[index]).remove();
-                          df.child("MarketPlace/" + sellID[index]).remove().then((value){
+                          DatabaseReference df =
+                              FirebaseDatabase.instance.ref();
+                          Reference ds =
+                              FirebaseStorage.instance.ref("images/");
+
+                          df
+                              .child("User/" +
+                                  FirebaseAuth.instance.currentUser!.uid +
+                                  "/SellItem/" +
+                                  sellID[index])
+                              .remove();
+                          df
+                              .child("MarketPlace/" + sellID[index])
+                              .remove()
+                              .then((value) {
                             print("Remove market place successful");
-                          }).catchError((onError){
-                            print("Remove market place failed${onError.toString()}");
+                          }).catchError((onError) {
+                            print(
+                                "Remove market place failed${onError.toString()}");
                           });
-                          ds.child("${sellID[index]}/").listAll().then((value){
+                          ds.child("${sellID[index]}/").listAll().then((value) {
                             value.items.forEach((element) {
                               element.delete();
                             });
@@ -229,26 +385,34 @@ class _AppHomePageState extends State<AppHomePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Book Name: " + sellInformation[index]["BookName"]),
-                            Text("Description: " + sellInformation[index]["Description"]),
+                            Text("Book Name: " +
+                                sellInformation[index]["BookName"]),
+                            Text("Description: " +
+                                sellInformation[index]["Description"]),
                             Text("Price: " + sellInformation[index]["Price"]),
                           ],
                         ),
                       ),
                     );
                   });
+            } else {
+              return Card(
+                child: Text("no value"),
+              );
             }
-            else{
-              return Card(child: Text("no value"),);
-            }
-          },),
+          },
+        ),
         alignment: Alignment.center,
-        color: Colors.blue,
+        color: Colors.white,
       ),
       Container(
-        child: Text("text1"),
+        child: Center(
+          child: Column(
+            children: [Text("Last Name: ")],
+          ),
+        ),
         alignment: Alignment.center,
-        color: Colors.greenAccent,
+        color: Colors.white,
       ),
     ];
 

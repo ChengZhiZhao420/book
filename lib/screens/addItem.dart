@@ -87,9 +87,9 @@ class _addItemState extends State<addItem> {
                 List photoUrl = [];
                 String sellId = "" + widget.userId + "~" + timeStamp.toString();
                 DatabaseReference df = FirebaseDatabase.instance.ref();
-                int i;
+                int j = 0;
 
-                for (i = 0; i < _image.length; i++) {
+                for (int i = 0; i < _image.length; i++) {
                   var ref = firebase_storage.FirebaseStorage.instance
                       .ref()
                       .child('images/$sellId/$i');
@@ -97,11 +97,13 @@ class _addItemState extends State<addItem> {
                   ref.putFile(_image[i]).then((value) {
                     value.ref.getDownloadURL().then((value){
                       df.child("User/" + widget.userId + "/SellItem/" + sellId + "/Property").update({
-                        "$i" : value.toString()
+                        "$j" : value.toString()
                       });
                       df.child("MarketPlace/" + sellId + "/Property").update({
-                        "$i" : value.toString()
+                        "$j" : value.toString()
                       });
+
+                      j++;
                     });
                     print("Update Storage Successful");
                   }).catchError((error) {
